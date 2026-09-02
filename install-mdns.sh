@@ -7,8 +7,8 @@ cd "$SCRIPT_DIR"
 read -p "Enter a hostname or press Enter for default(k2plus): " HOSTNAME
 HOSTNAME="${HOSTNAME:-k2plus}"
 
-# Replace hostname in the responder
 python3 - "$SCRIPT_DIR/mdns_responder.py" "$HOSTNAME" <<'PY'
+import re
 import sys
 from pathlib import Path
 
@@ -16,46 +16,40 @@ path = Path(sys.argv[1])
 hostname = sys.argv[2]
 
 text = path.read_text()
-old = 'hostname = "k2plus"'
-new = f'hostname = "{hostname}"'
+new_text, count = re.subn(r'hostname\s*=\s*[\'"][^\'"]*[\'"]', f'hostname = "{hostname}"', text, count=1)
+if count == 0:
+    raise SystemExit("Could not find hostname assignment in mdns_responder.py")
 
-if old in text:
-    text = text.replace(old, new, 1)
-else:
-    old = "hostname = 'k2plus'"
-    new = f"hostname = '{hostname}'"
-    if old in text:
-        text = text.replace(old, new, 1)
-    else:
-        raise SystemExit("Could not find hostname assignment in mdns_responder.py")
+path.write_text(new_text)
+PY
+
+cp "$SCRIPT_DIR/service/S55mdns-responder" /etc/init.d/S55mdns-responder
+
+python3 - /etc/init.d/S55mdns-responder "$HOSTNAME" "$SCRIPT_DIR/mdns_responder.py" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+hostname = sys.argv[2]
+responder_path = sys.argv[3]
+
+text = path.read_text()
+
+old1 = 'MDNS_HOSTNAME="${MDNS_HOSTNAME:-k2plus}" \\'
+new1 = f'MDNS_HOSTNAME="{hostname}" \\'
+if old1 in text:
+    text = text.replace(old1, new1, 1)
+
+old2 = 'python3 K2-mDNS/mdns_responder.py > /dev/null 2>&1 &'
+new2 = f'python3 {responder_path} > /dev/null 2>&1 &'
+if old2 in text:
+    text = text.replace(old2, new2, 1)
 
 path.write_text(text)
 PY
 
-# Replace the launch path in the service file
-python3 - "$SCRIPT_DIR/service/S55mdns-responder" "$SCRIPT_DIR/mdns_responder.py" <<'PY'
-import sys
-from pathlib import Path
-
-service_path = Path(sys.argv[1])
-responder_path = sys.argv[2]
-
-text = service_path.read_text()
-old = "python3 mdns_responder.py > /dev/null 2>&1 &"
-new = f"python3 {responder_path} > /dev/null 2>&1 &"
-
-if old in text:
-    text = text.replace(old, new, 1)
-else:
-    raise SystemExit("Could not find mdns_responder.py launch line in service file")
-
-service_path.write_text(text)
-PY
-
-cp "$SCRIPT_DIR/service/S55mdns-responder" /etc/init.d/
 chmod +x /etc/init.d/S55mdns-responder
 
 /etc/init.d/S55mdns-responder start
 
-echo "Service installed"
 echo "Printer is now accessible on the local network at http://$HOSTNAME.local"

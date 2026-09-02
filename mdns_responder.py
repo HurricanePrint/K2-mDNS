@@ -1,6 +1,17 @@
+import os
+import signal
 import socket
 import struct
 import time
+
+STOP = False
+
+def handle_stop(signum, frame):
+    global STOP
+    STOP = True
+
+signal.signal(signal.SIGTERM, handle_stop)
+signal.signal(signal.SIGINT, handle_stop)
 
 def encode_dns_name(name):
     labels = name.strip().lower().split('.')
@@ -13,8 +24,8 @@ def encode_dns_name(name):
     out.append(0)
     return bytes(out)
 
-def run_mdns():
-    hostname = "k2plus"
+def run_mdns(hostname="k2plus"):
+    global STOP
     port = 4408
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -50,8 +61,9 @@ def run_mdns():
     mreq = struct.pack('4s4s', socket.inet_aton('224.0.0.251'), socket.inet_aton('0.0.0.0'))
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-    print(f"Broadcasting comprehensive mDNS profile for {hostname}.local")
-    while True:
+    print(f"Broadcasting mDNS info for {hostname}.local")
+
+    while not STOP:
         try:
             sock.sendto(packet, ('224.0.0.251', 5353))
             time.sleep(10)
@@ -60,5 +72,9 @@ def run_mdns():
         except Exception:
             pass
 
+    sock.close()
+    print("mDNS responder stopped")
+
 if __name__ == '__main__':
-    run_mdns()
+    hostname = os.environ.get('MDNS_HOSTNAME', 'k2plus')
+    run_mdns(hostname)

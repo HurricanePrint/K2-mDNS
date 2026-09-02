@@ -1,19 +1,15 @@
 #!/bin/sh
 case "$1" in
   start)
-    echo "Starting Protected Python mDNS..."
-    (
-      while true; do
-        python3 /opt/mdns/mdns_responder.py > /dev/null 2>&1
-        sleep 10
-      done
-    ) &
+    echo "Starting Native Python mDNS..."
+    MDNS_HOSTNAME="${MDNS_HOSTNAME:-k2plus}" \
+    python3 K2-mDNS/mdns_responder.py > /dev/null 2>&1 &
     ;;
   stop)
     echo "Stopping Native Python mDNS..."
     PID=$(ps | grep mdns_responder.py | grep -v grep | awk '{print $1}')
     if [ -n "$PID" ]; then
-        kill $PID
+        kill -TERM "$PID"
     fi
     ;;
   restart)
