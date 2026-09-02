@@ -34,14 +34,15 @@ k2plus
 
 ## Option 2: Install from a release folder via Fluid
 
-1. Copy the project folder or release folder to the printer using Fluid.
+1. Download the [Latest Release](https://github.com/hurricaneprint/K2-mDNS/releases/latest) and extract the folder
+2. Copy the project folder or release folder to the printer using Fluid.
     * Open the "Configuration" Tab (keyboard shortcut X)
-    * Click the + and "Upload Folder"
-    * Select the K2-mDNS folder you extracted from the release zip
-2. Open an SSH session to the printer.
+    * Click the + and select "Upload Folder"
+    * Choose the K2-mDNS folder you extracted from the release zip
+3. Open an SSH session to the printer.
     * ```ssh root@<your-printer-ip>```
     * password: ```creality_2024```
-3. Run:
+4. Run:
 
 ```bash
 cd mnt/UDISK/printer_data/config/K2-mDNS
@@ -52,17 +53,10 @@ sh install-mdns.sh
 
 ## Notes
 
-- The hostname is entered during installation and stored in the responder script.
 - The default hostname is `k2plus`.
 - If the printer does not show up immediately, make sure multicast is enabled on the network and the service is running.
 
 ## Useful commands
-
-Check service status:
-
-```bash
-/etc/init.d/S55mdns-responder status
-```
 
 Start service:
 

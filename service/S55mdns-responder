@@ -1,8 +1,13 @@
 #!/bin/sh
 case "$1" in
   start)
-    echo "Starting Native Python mDNS..."
-    python3 mdns_responder.py > /dev/null 2>&1 &
+    echo "Starting Protected Python mDNS..."
+    (
+      while true; do
+        python3 /opt/mdns/mdns_responder.py > /dev/null 2>&1
+        sleep 10
+      done
+    ) &
     ;;
   stop)
     echo "Stopping Native Python mDNS..."
