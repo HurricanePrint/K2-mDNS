@@ -35,7 +35,12 @@ k2plus
 ## Option 2: Install from a release folder via Fluid
 
 1. Copy the project folder or release folder to the printer using Fluid.
+    * Open the "Configuration" Tab (keyboard shortcut X)
+    * Click the + and "Upload Folder"
+    * Select the K2-mDNS folder you extracted from the release zip
 2. Open an SSH session to the printer.
+    * ```ssh root@<your-printer-ip>```
+    * password: ```creality_2024```
 3. Run:
 
 ```bash
