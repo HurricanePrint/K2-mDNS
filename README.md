@@ -1,6 +1,6 @@
 # K2-mDNS
 
-A small mDNS responder for K2 printers that broadcasts a local hostname so the printer can be discovered on the network as something like:
+A small mDNS responder for K2 printers that broadcasts a local hostname so the printer can be discovered on the network with an easy to remember address like:
 
 - http://myprinter.local
 - http://k2plus.local
@@ -21,7 +21,7 @@ You can get the project onto the printer in either of these ways:
 From the printer or a connected shell:
 
 ```bash
-git clone https://github.com/<your-user>/K2-mDNS.git
+git clone https://github.com/HurricanePrint/K2-mDNS.git
 cd K2-mDNS
 sh install-mdns.sh
 ```
