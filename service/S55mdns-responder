@@ -1,0 +1,22 @@
+#!/bin/sh
+case "$1" in
+  start)
+    echo "Starting Native Python mDNS..."
+    python3 /opt/mdns/mdns_responder.py > /dev/null 2>&1 &
+    ;;
+  stop)
+    echo "Stopping Native Python mDNS..."
+    PID=$(ps | grep mdns_responder.py | grep -v grep | awk '{print $1}')
+    if [ -n "$PID" ]; then
+        kill $PID
+    fi
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+exit 0
