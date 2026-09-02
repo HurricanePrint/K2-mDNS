@@ -14,7 +14,7 @@ def encode_dns_name(name):
     return bytes(out)
 
 def run_mdns():
-    hostname = "k2-plus"
+    hostname = "k2plus"
     port = 4408
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
