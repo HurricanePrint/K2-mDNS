@@ -6,7 +6,6 @@ case "$1" in
     ;;
   stop)
     echo "Stopping Native Python mDNS..."
-    # Standard BusyBox method to find and kill the specific script process
     PID=$(ps | grep mdns_responder.py | grep -v grep | awk '{print $1}')
     if [ -n "$PID" ]; then
         kill $PID
