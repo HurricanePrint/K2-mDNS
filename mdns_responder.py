@@ -2,11 +2,21 @@ import socket
 import struct
 import time
 
+def encode_dns_name(name):
+    labels = name.strip().lower().split('.')
+    out = bytearray()
+    for label in labels:
+        if not label:
+            continue
+        out.append(len(label))
+        out.extend(label.encode('ascii'))
+    out.append(0)
+    return bytes(out)
+
 def run_mdns():
-    hostname = "k2plus"
+    hostname = "k2-plus"
     port = 4408
-    
-    # Auto-detect printer IP
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(('8.8.8.8', 1))
@@ -17,27 +27,20 @@ def run_mdns():
         s.close()
 
     ip_bytes = socket.inet_aton(local_ip)
-    
-    # Constructing a complete DNS Answer packet with A, SRV, and TXT records
-    # This matches upstream standards so Windows recognizes it as a true web service endpoint
-    hdr = struct.pack('!HHHHHH', 0, 0x8400, 0, 3, 0, 0) # 3 Answer RRs
-    
-    # 1. Encode Name Query (_http._tcp.local)
-    srv_name = b'\x05_http\x04_tcp\x05local\x00'
-    tgt_name = b'\x06k2plus\x05local\x00'
-    
-    # Record 1: Type A (IP Address mapping)
+
+    hdr = struct.pack('!HHHHHH', 0, 0x8400, 0, 3, 0, 0)
+
+    srv_name = encode_dns_name('_http._tcp.local')
+    tgt_name = encode_dns_name(f'{hostname}.local')
+
     r1 = tgt_name + struct.pack('!HHIH', 1, 1, 120, 4) + ip_bytes
-    
-    # Record 2: Type SRV (Port mapping for Windows background sockets)
-    # Priority (0), Weight (0), Port (4408), Target (k2plus.local)
+
     srv_data = struct.pack('!HHH', 0, 0, port) + tgt_name
     r2 = srv_name + struct.pack('!HHIH', 33, 1, 120, len(srv_data)) + srv_data
-    
-    # Record 3: Type TXT (Path definition)
+
     txt_data = b'\x07path=/'
     r3 = srv_name + struct.pack('!HHIH', 16, 1, 120, len(txt_data)) + txt_data
-    
+
     packet = hdr + r1 + r2 + r3
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
