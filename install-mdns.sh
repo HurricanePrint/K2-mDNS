@@ -3,11 +3,13 @@ set -e
 
 SCRIPT_DIR=$(pwd)
 cd "$SCRIPT_DIR"
+SERVICE_FILE="./service/K2-mDNS"
+RESPONDER_PATH="$SCRIPT_DIR/mdns_responder.py"
 
 read -p "Enter a hostname or press Enter for default(k2plus): " HOSTNAME
 HOSTNAME="${HOSTNAME:-k2plus}"
 
-python3 - "$SCRIPT_DIR/mdns_responder.py" "$HOSTNAME" <<'PY'
+python3 - "$RESPONDER_PATH" "$HOSTNAME" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -16,40 +18,76 @@ path = Path(sys.argv[1])
 hostname = sys.argv[2]
 
 text = path.read_text()
-new_text, count = re.subn(r'hostname\s*=\s*[\'"][^\'"]*[\'"]', f'hostname = "{hostname}"', text, count=1)
+new_text, count = re.subn(
+    r'hostname\s*=\s*[\'"][^\'"]*[\'"]',
+    f'hostname = "{hostname}"',
+    text,
+    count=1,
+)
+
 if count == 0:
-    raise SystemExit("Could not find hostname assignment in mdns_responder.py")
+    raise SystemExit("Could not find hostname assignment")
 
 path.write_text(new_text)
 PY
 
-cp "$SCRIPT_DIR/service/S55mdns-responder" /etc/init.d/S55mdns-responder
-
-python3 - /etc/init.d/S55mdns-responder "$HOSTNAME" "$SCRIPT_DIR/mdns_responder.py" <<'PY'
+python3 - "$SERVICE_FILE" "$RESPONDER_PATH" <<'PY'
+import re
+import shlex
 import sys
 from pathlib import Path
 
-path = Path(sys.argv[1])
-hostname = sys.argv[2]
-responder_path = sys.argv[3]
+service_file = Path(sys.argv[1])
+responder_path = sys.argv[2]
 
-text = path.read_text()
+text = service_file.read_text()
+replacement = f"MDNSSCRIPT={shlex.quote(responder_path)}"
 
-old1 = 'MDNS_HOSTNAME="${MDNS_HOSTNAME:-k2plus}" \\'
-new1 = f'MDNS_HOSTNAME="{hostname}" \\'
-if old1 in text:
-    text = text.replace(old1, new1, 1)
+new_text, count = re.subn(
+    r'^\s*MDNSSCRIPT=.*$',
+    replacement,
+    text,
+    count=1,
+    flags=re.MULTILINE,
+)
 
-old2 = 'python3 K2-mDNS/mdns_responder.py > /dev/null 2>&1 &'
-new2 = f'python3 {responder_path} > /dev/null 2>&1 &'
-if old2 in text:
-    text = text.replace(old2, new2, 1)
+if count == 0:
+    raise SystemExit("Could not find MDNSSCRIPT in the service file")
 
-path.write_text(text)
+service_file.write_text(new_text)
 PY
 
-chmod +x /etc/init.d/S55mdns-responder
-
-/etc/init.d/S55mdns-responder start
-
+cp "$SERVICE_FILE" /etc/init.d/
+chmod +x /etc/init.d/K2-mDNS
+/etc/init.d/K2-mDNS enable
+/etc/init.d/K2-mDNS start
+echo "Service is" `/etc/init.d/K2-mDNS status`
 echo "Printer is now accessible on the local network at http://$HOSTNAME.local"
+
+[ ! -d .git ] && [ -d git ] && mv git .git
+SERVICEFILE="/mnt/UDISK/printer_data/moonraker.asvc"
+SERVICELINE="K2-mDNS"
+
+grep -qxF 'K2-mDNS' ~/printer_data/moonraker.asvc || { sed -i '$a\' ~/printer_data/moonraker.asvc; echo "K2-mDNS" >> ~/printer_data/moonraker.asvc; }
+
+CONFFILE="/mnt/UDISK/printer_data/config/moonraker.conf"
+CONFBLOCK="[update_manager K2-mDNS]"
+
+if ! grep -qF "$CONFBLOCK" "$CONFFILE"; then
+    cat <<EOF >> "$CONFFILE"
+
+[update_manager K2-mDNS]
+type: git_repo
+path: $SCRIPT_DIR
+origin: https://github.com/HurricanePrint/K2-mDNS.git
+primary_branch: main
+managed_services: K2-mDNS
+EOF
+    echo "Block added to $CONFFILE."
+else
+    echo "Configuration already exists in $CONFFILE. No changes made."
+fi
+
+/etc/init.d/moonraker restart
+
+echo "K2-mDNS added to moonraker configuration."
