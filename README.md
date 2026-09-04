@@ -5,9 +5,15 @@ A small mDNS responder for K2 printers that broadcasts a local hostname so the p
 - http://myprinter.local
 - http://k2plus.local
 
-For example you will be able to access Fluidd at http://k2plus.local:4408
+For example you will be able to access Fluidd at ```http://k2plus.local:4408``` or ssh ```root@k2plus.local```
 
 If you don't have router access to put your printer on a static ip, this is a perfect fix as the printer will always be accessable from a permanent address even when the internal ip changes.
+
+> [!IMPORTANT]
+> **Windows users will need to install Bonjour**
+> 
+> Download it from Apple at https://support.apple.com/en-us/106380
+
 
 ## Install methods
 
@@ -61,17 +67,17 @@ sh install-mdns.sh
 Start service:
 
 ```bash
-/etc/init.d/S55mdns-responder start
+/etc/init.d/K2-mDNS start
 ```
 
 Stop service:
 
 ```bash
-/etc/init.d/S55mdns-responder stop
+/etc/init.d/K2-mDNS stop
 ```
 
 Restart service:
 
 ```bash
-/etc/init.d/S55mdns-responder restart
+/etc/init.d/K2-mDNS restart
 ```
