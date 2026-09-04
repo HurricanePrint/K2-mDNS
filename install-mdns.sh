@@ -63,31 +63,3 @@ chmod +x /etc/init.d/K2-mDNS
 /etc/init.d/K2-mDNS start
 echo "Service is" `/etc/init.d/K2-mDNS status`
 echo "Printer is now accessible on the local network at http://$HOSTNAME.local"
-
-[ ! -d .git ] && [ -d git ] && mv git .git
-SERVICEFILE="/mnt/UDISK/printer_data/moonraker.asvc"
-SERVICELINE="K2-mDNS"
-
-grep -qxF 'K2-mDNS' ~/printer_data/moonraker.asvc || { sed -i '$a\' ~/printer_data/moonraker.asvc; echo "K2-mDNS" >> ~/printer_data/moonraker.asvc; }
-
-CONFFILE="/mnt/UDISK/printer_data/config/moonraker.conf"
-CONFBLOCK="[update_manager K2-mDNS]"
-
-if ! grep -qF "$CONFBLOCK" "$CONFFILE"; then
-    cat <<EOF >> "$CONFFILE"
-
-[update_manager K2-mDNS]
-type: git_repo
-path: $SCRIPT_DIR
-origin: https://github.com/HurricanePrint/K2-mDNS.git
-primary_branch: main
-managed_services: K2-mDNS
-EOF
-    echo "Block added to $CONFFILE."
-else
-    echo "Configuration already exists in $CONFFILE. No changes made."
-fi
-
-/etc/init.d/moonraker restart
-
-echo "K2-mDNS added to moonraker configuration."
