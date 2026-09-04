@@ -1,23 +1,26 @@
-#!/bin/sh
-case "$1" in
-  start)
-    echo "Starting Native Python mDNS..."
-    MDNS_HOSTNAME="${MDNS_HOSTNAME:-k2plus}" \
-    python3 K2-mDNS/mdns_responder.py > /dev/null 2>&1 &
-    ;;
-  stop)
-    echo "Stopping Native Python mDNS..."
-    PID=$(ps | grep mdns_responder.py | grep -v grep | awk '{print $1}')
-    if [ -n "$PID" ]; then
-        kill -TERM "$PID"
-    fi
-    ;;
-  restart)
-    $0 stop
-    $0 start
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart}"
-    exit 1
-esac
-exit 0
+#!/bin/sh /etc/rc.common
+
+START=95
+USE_PROCD=1
+
+start_service() {
+        MDNSSCRIPT="/mnt/UDISK/K2-mDNS/mdns_responder.py"
+
+        procd_open_instance
+        procd_set_param command python3 "${MDNSSCRIPT}"
+        procd_set_param env MDNS_HOSTNAME="${MDNS_HOSTNAME:-k2plus}"
+        procd_set_param respawn
+        procd_close_instance
+}
+
+stop_service() {
+        PID=$(ps | grep mdns_responder.py | grep -v grep | awk '{print $1}')
+        if [ -n "$PID" ]; then
+                kill -TERM "$PID"
+        fi
+}
+
+restart_service() {
+        stop_service
+        start_service
+}
