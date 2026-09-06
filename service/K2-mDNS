@@ -3,8 +3,12 @@
 START=95
 USE_PROCD=1
 
+boot_trigger() {
+        procd_add_reload_interface_trigger wlan0
+}
+
 start_service() {
-        MDNSSCRIPT="/mnt/UDISK/K2-mDNS/mdns_responder.py"
+MDNSSCRIPT=/mnt/UDISK/printer_data/config/K2-mDNS/mdns_responder.py
 
         procd_open_instance
         procd_set_param command python3 "${MDNSSCRIPT}"
