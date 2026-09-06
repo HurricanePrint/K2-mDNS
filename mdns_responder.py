@@ -25,29 +25,25 @@ def encode_dns_name(name):
     return bytes(out)
 
 def get_local_ip():
-    """Reads network sockets offline to discover a valid 10.x or 192.x address."""
-    try:
-        # Fetch all IP network interfaces bound to the machine architecture
-        interfaces = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
-        for s_addr in interfaces:
-            ip = s_addr[4][0]
-            if ip.startswith('10.') or ip.startswith('192.'):
-                return ip
-    except Exception:
-        pass
+    """Directly extracts the local IP address assigned to the wlan0 interface."""
+    import fcntl
+    import socket
+    import struct
 
-    # Fallback method checking local socket routing endpoints safely
+    # Target the Wi-Fi interface directly (or change 'wlan0' to 'eth0' if using Ethernet)
+    interface_name = b'wlan0'
+    
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Check standard routing tables without establishing an external data stream
-        for target in ['10.255.255.255', '192.168.255.255']:
-            try:
-                s.connect((target, 1))
-                ip = s.getsockname()[0]
-                if ip.startswith('10.') or ip.startswith('192.'):
-                    return ip
-            except Exception:
-                continue
+        # 0x8915 is the Linux kernel constant for SIOCGIFADDR (Get Interface Address)
+        packed_addr = fcntl.ioctl(
+            s.fileno(),
+            0x8915,
+            struct.pack('256s', interface_name[:15])
+        )[20:24]
+        ip = socket.inet_ntoa(packed_addr)
+        if ip.startswith('10.') or ip.startswith('192.'):
+            return ip
     except Exception:
         pass
     finally:
