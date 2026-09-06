@@ -24,18 +24,44 @@ def encode_dns_name(name):
     out.append(0)
     return bytes(out)
 
+def get_local_ip():
+    """Reads network sockets offline to discover a valid 10.x or 192.x address."""
+    try:
+        # Fetch all IP network interfaces bound to the machine architecture
+        interfaces = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+        for s_addr in interfaces:
+            ip = s_addr[4][0]
+            if ip.startswith('10.') or ip.startswith('192.'):
+                return ip
+    except Exception:
+        pass
+
+    # Fallback method checking local socket routing endpoints safely
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Check standard routing tables without establishing an external data stream
+        for target in ['10.255.255.255', '192.168.255.255']:
+            try:
+                s.connect((target, 1))
+                ip = s.getsockname()[0]
+                if ip.startswith('10.') or ip.startswith('192.'):
+                    return ip
+            except Exception:
+                continue
+    except Exception:
+        pass
+    finally:
+        s.close()
+        
+    return '127.0.0.1'
+
 def run_mdns(hostname="k2plus"):
     global STOP
     port = 4408
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(('8.8.8.8', 1))
-        local_ip = s.getsockname()[0]
-    except Exception:
-        local_ip = '127.0.0.1'
-    finally:
-        s.close()
+    # Use the robust offline detection method
+    local_ip = get_local_ip()
+    print(f"Detected offline IP for mDNS advertisement: {local_ip}")
 
     ip_bytes = socket.inet_aton(local_ip)
 
